@@ -1,4 +1,6 @@
 # InfoGraph
+(Still under construction)
+
 This DGL example implements the model proposed in the paper [InfoGraph: Unsupervised and Semi-supervised Graph-Level Representation Learning via Mutual Information Maximization](https://arxiv.org/abs/1908.01000).
 
 Paper link: https://arxiv.org/abs/1908.01000
