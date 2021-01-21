@@ -3,3 +3,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 .DS_Store
+.idea
+*.iml
+gdb9.sdf
+gdb9.sdf.csv
+data/
