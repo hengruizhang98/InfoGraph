@@ -9,23 +9,23 @@ from dgl.nn.pytorch.glob import SumPooling
 from utils import global_global_loss_, local_global_loss_
 
 
-''' Feedforward Network'''
+''' Feedforward neural network'''
 
 class FFNN(nn.Module):
     ''' 3-layer feed-forward neural networks with jumping connections'''
 
-    def __init__(self, in_dim):
+    def __init__(self, in_dim, hid_dim):
         super(FFNN, self).__init__()
 
-        self.block = Sequential(Linear(in_dim, in_dim),
+        self.block = Sequential(Linear(in_dim, hid_dim),
                                 ReLU(),
-                                Linear(in_dim, in_dim),
+                                Linear(hid_dim, hid_dim),
                                 ReLU(),
-                                Linear(in_dim, in_dim),
+                                Linear(hid_dim, hid_dim),
                                 ReLU()
                                 )
 
-        self.jump_con = Linear(in_dim, in_dim)
+        self.jump_con = Linear(in_dim, hid_dim)
 
     def forward(self, feat):
         block_out = self.block(feat)
@@ -93,8 +93,8 @@ class InfoGraph(nn.Module):
 
         self.encoder = GINEncoder(n_feature, hid_dim, n_layer)
 
-        self.local_d = FFNN(embedding_dim)
-        self.global_d = FFNN(embedding_dim)
+        self.local_d = FFNN(embedding_dim, embedding_dim)
+        self.global_d = FFNN(embedding_dim, embedding_dim)
 
     def get_embedding(self, graph):
         with th.no_grad():
@@ -129,7 +129,7 @@ class NNConvEncoder(nn.Module):
 
         block = Sequential(Linear(5, 128), ReLU(), Linear(128, hid_dim * hid_dim))
 
-        self.conv = NNConv(hid_dim, hid_dim, block, aggr = 'mean', root_weight = False)
+        self.conv = NNConv(hid_dim, hid_dim, block, aggregator_type = 'mean', residual = False)
         self.gru = GRU(hid_dim, hid_dim)
 
         self.set2set = Set2Set(hid_dim, n_iters=3, n_layers=1)
@@ -146,17 +146,14 @@ class NNConvEncoder(nn.Module):
             out = out.squeeze(0)
             feat_map.append(out)
 
-        out = self.set2set(out)
+        out = self.set2set(graph, out)
 
         return out, feat_map[-1]
 
 
 class InfoGraphS(nn.Module):
-    def __init__(self, n_feature, hid_dim, n_layer):
+    def __init__(self, n_feature, hid_dim):
         super(InfoGraphS, self).__init__()
-
-        self.n_layer = n_layer
-
 
         self.sup_encoder = NNConvEncoder(n_feature, hid_dim)
         self.unsup_encoder = NNConvEncoder(n_feature, hid_dim)
@@ -172,18 +169,25 @@ class InfoGraphS(nn.Module):
 
 
     def forward(self, graph):
+
         nfeat = graph.ndata.pop('attr')
         efeat = graph.edata.pop('edge_attr')
-
-        graph_id = graph.ndata.pop('graph_id')
-
         sup_global_emb, sup_local_emb = self.sup_encoder(graph, nfeat, efeat)
 
         sup_global_pred = self.fc2(F.relu(self.fc1(sup_global_emb)))
         sup_global_pred = sup_global_pred.view(-1)
 
-        unsup_global_emb, unsup_local_emb = self.unsup_encoder(graph, nfeat, efeat)
+        return sup_global_pred
+    
+    def unsup_forward(self, graph):
 
+        nfeat = graph.ndata.pop('attr')
+        efeat = graph.edata.pop('edge_attr')
+        graph_id = graph.ndata.pop('graph_id')
+
+        sup_global_emb, sup_local_emb = self.sup_encoder(graph, nfeat, efeat)
+        unsup_global_emb, unsup_local_emb = self.unsup_encoder(graph, nfeat, efeat)
+        
         g_enc = self.unsup_global_d(unsup_global_emb)
         l_enc = self.unsup_local_d(unsup_local_emb)
 
@@ -193,6 +197,37 @@ class InfoGraphS(nn.Module):
         # Calculate loss
         measure = 'JSD'
         unsup_loss = local_global_loss_(l_enc, g_enc, graph_id, measure)
-        con_loss = global_global_loss_(sup_g_enc, unsup_g_enc, measure)
+        con_loss = global_global_loss_(sup_g_enc, unsup_g_enc, measure)    
+        
+        return unsup_loss, con_loss
 
-        return sup_global_pred, unsup_loss, con_loss
+    # def consistency_loss(self, graph, nfeat, efeat):
+
+
+        
+    
+    # def forward(self, graph):
+    #     nfeat = graph.ndata.pop('attr')
+    #     efeat = graph.edata.pop('edge_attr')
+
+    #     graph_id = graph.ndata.pop('graph_id')
+
+    #     sup_global_emb, sup_local_emb = self.sup_encoder(graph, nfeat, efeat)
+
+    #     sup_global_pred = self.fc2(F.relu(self.fc1(sup_global_emb)))
+    #     sup_global_pred = sup_global_pred.view(-1)
+
+    #     unsup_global_emb, unsup_local_emb = self.unsup_encoder(graph, nfeat, efeat)
+
+    #     g_enc = self.unsup_global_d(unsup_global_emb)
+    #     l_enc = self.unsup_local_d(unsup_local_emb)
+
+    #     sup_g_enc = self.sup_d(sup_global_emb)
+    #     unsup_g_enc = self.unsup_d(unsup_global_emb)
+
+    #     # Calculate loss
+    #     measure = 'JSD'
+    #     unsup_loss = local_global_loss_(l_enc, g_enc, graph_id, measure)
+    #     con_loss = global_global_loss_(sup_g_enc, unsup_g_enc, measure)
+
+        # return sup_global_pred, unsup_loss, con_loss

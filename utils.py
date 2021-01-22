@@ -99,7 +99,7 @@ def get_negative_expectation(q_samples, measure, average=True):
         return Eq
 
 
-def local_global_loss_(l_enc, g_enc, batch, measure):
+def local_global_loss_(l_enc, g_enc, graph_id, measure):
     num_graphs = g_enc.shape[0]
     num_nodes = l_enc.shape[0]
 
@@ -108,7 +108,9 @@ def local_global_loss_(l_enc, g_enc, batch, measure):
     pos_mask = th.zeros((num_nodes, num_graphs)).to(device)
     neg_mask = th.ones((num_nodes, num_graphs)).to(device)
 
-    for nodeidx, graphidx in enumerate(batch):
+    for nodeidx, graphidx in enumerate(graph_id):
+        # print(nodeidx)
+        # print(graphidx)
         pos_mask[nodeidx][graphidx] = 1.
         neg_mask[nodeidx][graphidx] = 0.
 
@@ -132,7 +134,7 @@ def global_global_loss_(sup_enc, unsup_enc, measure):
     Returns:
         torch.Tensor: Loss.
     '''
-    num_graphs = sup_enc.shape[1]
+    num_graphs = sup_enc.shape[0]
     device = sup_enc.device
 
     pos_mask = th.eye(num_graphs).to(device)
@@ -148,18 +150,18 @@ def global_global_loss_(sup_enc, unsup_enc, measure):
     return E_neg - E_pos
 
 
-# def adj_loss_(l_enc, g_enc, edge_index):
+# def adj_loss_(l_enc, g_enc, edge_index, batch):
 #     num_graphs = g_enc.shape[0]
 #     num_nodes = l_enc.shape[0]
-#
+
 #     adj = torch.zeros((num_nodes, num_nodes)).cuda()
 #     mask = torch.eye(num_nodes).cuda()
 #     for node1, node2 in zip(edge_index[0], edge_index[1]):
 #         adj[node1.item()][node2.item()] = 1.
 #         adj[node2.item()][node1.item()] = 1.
-#
+
 #     res = torch.sigmoid((torch.mm(l_enc, l_enc.t())))
 #     res = (1 - mask) * res
-#
+
 #     loss = nn.BCELoss()(res, adj)
 #     return loss
