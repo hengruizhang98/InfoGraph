@@ -78,7 +78,7 @@ class GINEncoder(nn.Module):
             xs.append(x)
 
         local_emb = th.cat(xs, 1)
-        global_emb = self.sum_pool(graph, local_emb)
+        global_emb = self.pool(graph, local_emb)
 
         return global_emb, local_emb
 
@@ -98,21 +98,14 @@ class InfoGraph(nn.Module):
 
     def get_embedding(self, graph):
         with th.no_grad():
-            feat = graph.ndata.pop('attr')
+            feat = graph.ndata['attr']
             global_emb, _ = self.encoder(graph, feat)
 
         return global_emb
 
-    # def reset_parameters(self):
-    #     for m in self.modules():
-    #         if isinstance(m, Linear):
-    #             nn.init.xavier_uniform_(m.weight.data)
-    #             if m.bias is not None:
-    #                 nn.init.zeros_(m.bias.data)
-
     def forward(self, graph):
         feat = graph.ndata.pop('attr')
-        batch = graph.ndata.pop('batch')
+        graph_id = graph.ndata.pop('graph_id')
 
         global_emb, local_emb = self.encoder(graph, feat)
 
@@ -121,13 +114,12 @@ class InfoGraph(nn.Module):
 
         measure = 'JSD'
 
-        loss = local_global_loss_(global_h, local_h, batch, measure)
+        loss = local_global_loss_(local_h, global_h, graph_id, measure)
 
         return loss
 
 
 ''' Semisupevised Setting '''
-
 
 class NNConvEncoder(nn.Module):
     def __init__(self, in_dim, hid_dim):
@@ -142,16 +134,14 @@ class NNConvEncoder(nn.Module):
 
         self.set2set = Set2Set(hid_dim, n_iters=3, n_layers=1)
 
-    def forward(self, graph):
-        feat = graph.ndata.pop('attr')
-        batch = graph.ndata.pop('batch')
+    def forward(self, graph, nfeat, efeat):
 
-        out = F.relu(self.lin0(feat))
+        out = F.relu(self.lin0(nfeat))
         h = out.unsqueeze(0)
 
         feat_map = []
         for i in range(3):
-            m = F.relu(self.conv(graph, out))
+            m = F.relu(self.conv(graph, out, efeat))
             out, h = self.gru(m.unsqueeze(0), h)
             out = out.squeeze(0)
             feat_map.append(out)
@@ -180,33 +170,29 @@ class InfoGraphS(nn.Module):
         self.sup_d = FFNN(2 * hid_dim, hid_dim)
         self.unsup_d = FFNN(2 * hid_dim, hid_dim)
 
-    # def get_embedding(self, graph):
-    #     with th.no_grad():
-    #         feat = graph.ndata.pop('attr')
-    #         global_emb, _ = self.encoder(graph, feat)
-
-    #     return global_emb
 
     def forward(self, graph):
-        feat = graph.ndata.pop('attr')
-        batch = graph.ndata.pop('batch')
+        nfeat = graph.ndata.pop('attr')
+        efeat = graph.edata.pop('edge_attr')
 
-        sup_global_emb, sup_local_emb = self.sup_encoder(graph, feat)
+        graph_id = graph.ndata.pop('graph_id')
+
+        sup_global_emb, sup_local_emb = self.sup_encoder(graph, nfeat, efeat)
 
         sup_global_pred = self.fc2(F.relu(self.fc1(sup_global_emb)))
         sup_global_pred = sup_global_pred.view(-1)
 
-        unsup_global_emb, unsup_local_emb = self.unsup_encoder(graph, feat)
+        unsup_global_emb, unsup_local_emb = self.unsup_encoder(graph, nfeat, efeat)
 
         g_enc = self.unsup_global_d(unsup_global_emb)
         l_enc = self.unsup_local_d(unsup_local_emb)
 
-        sup_g_enc = self.ff1(sup_global_emb)
-        unsup_g_enc = self.ff2(unsup_global_emb)
+        sup_g_enc = self.sup_d(sup_global_emb)
+        unsup_g_enc = self.unsup_d(unsup_global_emb)
 
         # Calculate loss
         measure = 'JSD'
-        unsup_loss = local_global_loss_(l_enc, g_enc, batch, measure)
-        con_loss = global_global_loss_()
+        unsup_loss = local_global_loss_(l_enc, g_enc, graph_id, measure)
+        con_loss = global_global_loss_(sup_g_enc, unsup_g_enc, measure)
 
         return sup_global_pred, unsup_loss, con_loss
