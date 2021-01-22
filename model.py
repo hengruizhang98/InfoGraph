@@ -9,7 +9,7 @@ from dgl.nn.pytorch.glob import SumPooling
 from utils import global_global_loss_, local_global_loss_
 
 
-''' Feedforward neural network'''
+''' Feedforward Network'''
 
 class FFNN(nn.Module):
     ''' 3-layer feed-forward neural networks with jumping connections'''
