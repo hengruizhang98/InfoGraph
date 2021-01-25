@@ -24,7 +24,7 @@ def argument():
     parser.add_argument('--lr', type=float, default=0.01, help='Learning rate.')
 
     # model params
-    parser.add_argument('--n_layer', type=int, default=3, help='Number21 of graph convolution layers before each pooling')
+    parser.add_argument('--n_layers', type=int, default=3, help='Number21 of graph convolution layers before each pooling')
     parser.add_argument('--hid_dim', type=int, default=32, help='Hidden layer dimensionalities')
 
     args = parser.parse_args()
@@ -62,17 +62,9 @@ def collate(samples):
 if __name__ == '__main__':
 
     args = argument()
-
-    # accuracies = {'logreg': [], 'svc': [], 'linearsvc': [], 'randomforest': []}
-    # epochs = 20
-    # log_interval = 1
-    # batch_size = 128
-    # device = 'cpu'
-    # n_epochs = 1000
-
+    print('device:', args.device)
     dataset = GINDataset(args.dataname, False)
-    
-    # get whole graph
+
     graphs, labels = map(list, zip(*dataset))
     wholegraph = dgl.batch(graphs)
     wholegraph.ndata['attr'] = wholegraph.ndata['attr'].to(th.float32)
@@ -85,7 +77,7 @@ if __name__ == '__main__':
 
     in_dim = dataset[0][0].ndata['attr'].shape[1]
 
-    model = InfoGraphS(in_dim, args.hid_dim, args.n_layer)
+    model = InfoGraph(in_dim, args.hid_dim, args.n_layers)
     model = model.to(args.device)
 
     optimizer = th.optim.Adam(model.parameters(), lr=args.lr)
@@ -117,8 +109,7 @@ if __name__ == '__main__':
     
         print('Epoch {}, Loss {:.4f}'.format(epoch, loss_all / len(dataloader)))
     
-        if epoch % 10 == 0:
-            
+        if epoch % 1 == 0:
             model.eval()
             emb = model.get_embedding(wholegraph)
             res = evaluate_embedding(emb, labels)
@@ -130,9 +121,8 @@ if __name__ == '__main__':
                 best_epoch = epoch
                 best_loss = loss_all
     
-        if epoch % 10 == 0:
+        if epoch % 5 == 0:
             print('logreg {:4f}, best svc {:4f}, best_epoch: {}, best_loss: {}'.format(res[0], best_svc, best_epoch,
                                                                                        best_loss))
-            # print('logreg {:4f}, svc {:4f}'.format(res[0], res[1]))
     print('Training End')
     print('best svc {:4f}'.format(best_svc))
