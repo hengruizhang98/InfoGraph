@@ -2,6 +2,7 @@ import torch as th
 
 import dgl
 from dgl.data import GINDataset
+# form dgl.data import QM9Dataset
 
 from torch.utils.data import DataLoader
 
@@ -9,7 +10,6 @@ from model import InfoGraph
 from evaluate_embedding import evaluate_embedding
 
 import argparse
-
 
 def argument():
     parser = argparse.ArgumentParser(description='InfoGraph')
@@ -24,8 +24,7 @@ def argument():
     parser.add_argument('--lr', type=float, default=0.01, help='Learning rate.')
 
     # model params
-    parser.add_argument('--n_layer', type=int, default=3,
-                        help='Number21 of graph convolution layers before each pooling')
+    parser.add_argument('--n_layer', type=int, default=3, help='Number21 of graph convolution layers before each pooling')
     parser.add_argument('--hid_dim', type=int, default=32, help='Hidden layer dimensionalities')
 
     args = parser.parse_args()
@@ -37,7 +36,7 @@ def argument():
 
     return args
 
-
+    
 def collate(samples):
     ''' an auxiliary function for building graph dataloader'''
 
@@ -65,9 +64,14 @@ if __name__ == '__main__':
     args = argument()
 
     # accuracies = {'logreg': [], 'svc': [], 'linearsvc': [], 'randomforest': []}
+    # epochs = 20
+    # log_interval = 1
+    # batch_size = 128
+    # device = 'cpu'
+    # n_epochs = 1000
 
-    dataset = GINDataset('MUTAG', False)
-
+    dataset = GINDataset(args.dataname, False)
+    
     # get whole graph
     graphs, labels = map(list, zip(*dataset))
     wholegraph = dgl.batch(graphs)
@@ -81,52 +85,51 @@ if __name__ == '__main__':
 
     in_dim = dataset[0][0].ndata['attr'].shape[1]
 
-    model = InfoGraph(in_dim, args.hid_dim, args.n_layer)
+    model = InfoGraphS(in_dim, args.hid_dim, args.n_layer)
     model = model.to(args.device)
 
-    # model.reset_parameters()
-
     optimizer = th.optim.Adam(model.parameters(), lr=args.lr)
-
+ 
+    
     print('===== Before training =====')
     emb = model.get_embedding(wholegraph)
     res = evaluate_embedding(emb, labels)
     print('logreg {:4f}, svc {:4f}'.format(res[0], res[1]))
-
+    
     best_logreg = 0
     best_svc = 0
     best_epoch = 0
     best_loss = 0
-
-    for epoch in range(1, 101):
+    
+    for epoch in range(1, args.epochs):
         loss_all = 0
         model.train()
-
+    
         for graph, label in dataloader:
             graph = graph.to(args.device)
             n_graph = label.shape[0]
-
+    
             optimizer.zero_grad()
             loss = model(graph)
             loss.backward()
             optimizer.step()
             loss_all += loss.item() * n_graph
-
+    
         print('Epoch {}, Loss {:.4f}'.format(epoch, loss_all / len(dataloader)))
-
+    
         if epoch % 10 == 0:
-
+            
             model.eval()
             emb = model.get_embedding(wholegraph)
             res = evaluate_embedding(emb, labels)
-
+            
             if res[0] > best_logreg:
                 best_logreg = res[0]
             if res[1] > best_svc:
                 best_svc = res[1]
                 best_epoch = epoch
                 best_loss = loss_all
-
+    
         if epoch % 10 == 0:
             print('logreg {:4f}, best svc {:4f}, best_epoch: {}, best_loss: {}'.format(res[0], best_svc, best_epoch,
                                                                                        best_loss))
