@@ -107,9 +107,9 @@ if __name__ == '__main__':
     model = InfoGraphS(in_dim, args.hid_dim)
     model = model.to(args.device)
 
-    optimizer = th.optim.Adam(model.parameters(), lr=0.003, weight_decay=0)
+    optimizer = th.optim.Adam(model.parameters(), lr=0.001, weight_decay=0)
     scheduler = th.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.7, patience=8, min_lr=0.000001
+        optimizer, mode='min', factor=0.7, patience=6, min_lr=0.000001
     )
 
     sup_loss_all = 0
@@ -121,6 +121,7 @@ if __name__ == '__main__':
         ''' Training '''
         model.train()
         lr = scheduler.optimizer.param_groups[0]['lr']
+
         iteration = 0
         sup_loss_all = 0
         unsup_loss_all = 0
@@ -196,15 +197,16 @@ if __name__ == '__main__':
                 test_error += (model.sup_pred(test_graph, test_nfeat,
                                               test_efeat) * std - test_target * std).abs().sum().item()
             test_error = test_error / 10000
+            best_test_error = test_error
         else:
             patience += 1
 
         print('Epoch: {}, LR: {}, best_val_error: {:.4f}, val_error: {:.4f}, test_error: {:.4f}' \
-              .format(epoch, lr, best_val_error, val_error, test_error))
+              .format(epoch, lr, best_val_error, val_error, best_test_error))
 
-        if patience == 20:
-            print('training ends')
-            break
+        # if patience == 20:
+        #     print('training ends')
+        #     break
 
     with open('semisupervised.log', 'a+') as f:
         f.write('{},{},{}\n'.format(tar, val_error, test_error))

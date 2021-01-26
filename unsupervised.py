@@ -2,12 +2,11 @@ import torch as th
 
 import dgl
 from dgl.data import GINDataset
-# form dgl.data import QM9Dataset
 
 from torch.utils.data import DataLoader
 
 from model import InfoGraph
-from evaluate_embedding import evaluate_embedding
+from evaluate_embedding import
 
 import argparse
 
@@ -15,7 +14,7 @@ def argument():
     parser = argparse.ArgumentParser(description='InfoGraph')
 
     # data source params
-    parser.add_argument('--dataname', type=str, default='MUTAG', help='Name of dataset. Choose from {MUTAG}')
+    parser.add_argument('--dataname', evaluate_embeddingtype=str, default='MUTAG', help='Name of dataset. Choose from {MUTAG}')
 
     # training params
     parser.add_argument('--gpu', type=int, default=-1, help='GPU index, default:-1, using CPU.')
@@ -90,7 +89,7 @@ if __name__ == '__main__':
     
     best_logreg = 0
     best_svc = 0
-    best_epoch = 0
+    best_epoch = 0`
     best_loss = 0
     
     for epoch in range(1, args.epochs):
