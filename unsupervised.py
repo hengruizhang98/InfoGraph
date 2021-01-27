@@ -89,7 +89,7 @@ if __name__ == '__main__':
     
     best_logreg = 0
     best_svc = 0
-    best_epoch = 0`
+    best_epoch = 0
     best_loss = 0
     
     for epoch in range(1, args.epochs):

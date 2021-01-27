@@ -13,11 +13,11 @@ Contributor: Hengrui Zhang ([@hengruizhang98](https://github.com/hengruizhang98)
 
 - Python 3.7
 - PyTorch 1.7.1
-- dgl 0.6.0
+- dgl 0.5.3
 
 ## Dataset
 
-Unsupervised Graph Classification Setting:
+Unsupervised Graph Classification Setting(TUDataset, GINDataset):
 
 |   Dataset    | MUTAG | PTC  | **IMDBBINARY** | **IMDBMULTI** | **REDDITBINARY** | **REDDITMULTI5K** |
 | :----------: | :---: | :--: | :------------: | :-----------: | :--------------: | :---------------: |
@@ -25,11 +25,12 @@ Unsupervised Graph Classification Setting:
 | # Avg. Nodes |       |      |                |               |                  |                   |
 | # Avg. Edges |       |      |                |               |                  |                   |
 
-Semi-supervised Graph Regression Setting:
+Semi-supervised Graph Regression Setting(QM9Dataset):
 
 | Dataset | # Graphs | # Avg. Nodes | #  Avg. Edges |
 | ------- | -------- | ------------ | ------------- |
 | QM9     |          |              |               |
+
 
 
 
@@ -69,25 +70,67 @@ Semi-supervised Graph Regression Setting:
 #### Semi-supervised
 
 
+###### Dataset options
+
+```
+--dataname         str     The graph dataset name.             Default is 'MUTAG'.
+--target           int     The id of regression task.          Default is 0.
+--train_num        int     Number of training examples.        Default is 5000.
+```
+
+###### GPU options
+
+```
+--gpu              int     GPU index.                          Default is -1, using CPU.
+```
+
+###### Training options
+
+```
+--epochs           int     Number of training epochs.             Default is 200.
+--batch_size       int     Size of a training batch               Default is 20.
+--lr               float   Adam optimizer learning rate.          Default is 0.001.
+```
+
+###### Model options
+
+```
+--hid_dim          int     Dimension of hidden layer.             Default is 64.
+--reg              int     Regularization weight                  Default is 0.001.
+```
 
 ## Examples
 
-Train a model which follows the original hyperparameters on different datasets.
-
+Training and testing unsupervised model on MUTAG.(We recommend using cpu)
 ```bash
-# Cora:
-python main.py --dataname cora --gpu 0 --lam 1.0 --tem 0.5 --order 8 --sample 4 --input_droprate 0.5 --hidden_droprate 0.5 --dropnode_rate 0.5 --hid_dim 32 --early_stopping 100 --lr 1e-2  --epochs 2000
-
+# MUTAG:
+python unsupervised.py --dataname MUTAG --n_layers 4 --hid_dim 32
+```
+Training and testing semi-supervised model on QM9-$\mu$.
+```bash
+# QM9:
+python semisupervised.py --gpu 0 --target 0
 ```
 
 ### Performance
 
 The hyperparameter setting in our implementation is identical to that reported in the paper.
 
-|      Dataset      |     MUTAG      |      PTC       |        ax        |
-| :---------------: | :------------: | :------------: | :--------------: |
-| Accuracy Reported | **85.4(±0.4)** | **75.4(±0.4)** |    82.7(±0.6)    |
-|  This repository  |  85.33(±0.41)  |  75.36(±0.36)  | **82.90(±0.66)** |
 
 
+Unsupervised Setting
+
+|     MUTAG      |      PTC       |      Dataset      |     REDDIT-B     | REDDIT-M | IMDB-B | IMDB-M |
+| :------------: | :------------: | :---------------: | :--------------: | -------- | ------ | ------ |
+| **85.4(±0.4)** | **75.4(±0.4)** | Accuracy Reported |    82.7(±0.6)    |          |        |        |
+|  85.33(±0.41)  |  75.36(±0.36)  |  This repository  | **82.90(±0.66)** |          |        |        |
+
+
+
+Semi-supervised setting
+
+|       Task        | Mu, $\mu$ (0)  | Alpha, $\alpha$ (1) |     REDDIT-B     | REDDIT-M | IMDB-B | IMDB-M |
+| :---------------: | :------------: | :-----------------: | :--------------: | -------- | ------ | ------ |
+| Accuracy Reported | **85.4(±0.4)** |   **75.4(±0.4)**    |    82.7(±0.6)    |          |        |        |
+|  This repository  |  85.33(±0.41)  |    75.36(±0.36)     | **82.90(±0.66)** |          |        |        |
 
