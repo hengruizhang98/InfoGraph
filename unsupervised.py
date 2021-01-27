@@ -6,7 +6,7 @@ from dgl.data import GINDataset
 from torch.utils.data import DataLoader
 
 from model import InfoGraph
-from evaluate_embedding import
+from evaluate_embedding import evaluate_embedding
 
 import argparse
 
