@@ -4,6 +4,7 @@ import dgl
 from dgl.data import GINDataset
 
 from torch.utils.data import DataLoader
+# from dgl.dataloading.pytorch import GraphDataLoader
 
 from model import InfoGraph
 from evaluate_embedding import evaluate_embedding
@@ -37,22 +38,28 @@ def argument():
 
     
 def collate(samples):
-    ''' an auxiliary function for building graph dataloader'''
 
+    ''' collate function for building graph dataloader'''
     graphs, labels = map(list, zip(*samples))
+
+    # generate batched graphs and labels
     batched_graph = dgl.batch(graphs)
     batched_labels = th.tensor(labels)
+
+
     n_nodes = batched_graph.num_nodes()
 
-    batch = th.zeros(n_nodes).long()
+    # generate graph_id for each node within the batch
+    graph_id = th.zeros(n_nodes).long()
     N = 0
     id = 0
     for graph in graphs:
         N_next = N + graph.num_nodes()
-        batch[N:N_next] = id
+        graph_id[N:N_next] = id
         N = N_next
         id += 1
-    batched_graph.ndata['graph_id'] = batch
+
+    batched_graph.ndata['graph_id'] = graph_id
     batched_graph.ndata['attr'] = batched_graph.ndata['attr'].to(th.float32)
 
     return batched_graph, batched_labels
@@ -60,14 +67,27 @@ def collate(samples):
 
 if __name__ == '__main__':
 
+    # Step 1: Prepare graph data   ===================================== #
     args = argument()
-    print('device:', args.device)
+    log_interval = 1
+
+    # load dataset from dgl.data.GINDataset
     dataset = GINDataset(args.dataname, False)
 
+    # get graphs and labels
     graphs, labels = map(list, zip(*dataset))
+
+    # generate a graph with all examples for evaluation
     wholegraph = dgl.batch(graphs)
     wholegraph.ndata['attr'] = wholegraph.ndata['attr'].to(th.float32)
 
+    # dataloader = GraphDataLoader(dataset,
+    #                              batchsize = args.batchsize,
+    #                              collate_fn = collate,
+    #                              drop_last=False,
+    #                              shuffle=True)
+
+    # creta dataloader for batch training
     dataloader = DataLoader(dataset,
                             batch_size=args.batch_size,
                             collate_fn=collate,
@@ -76,22 +96,27 @@ if __name__ == '__main__':
 
     in_dim = dataset[0][0].ndata['attr'].shape[1]
 
+    # Step 2: Create model =================================================================== #
     model = InfoGraph(in_dim, args.hid_dim, args.n_layers)
     model = model.to(args.device)
 
+    # Step 3: Create training components ===================================================== #
     optimizer = th.optim.Adam(model.parameters(), lr=args.lr)
  
     
-    print('===== Before training =====')
+    print('===== Before training ======')
     emb = model.get_embedding(wholegraph)
     res = evaluate_embedding(emb, labels)
+
+
     print('logreg {:4f}, svc {:4f}'.format(res[0], res[1]))
     
     best_logreg = 0
     best_svc = 0
     best_epoch = 0
     best_loss = 0
-    
+
+    # Step 4: training epoches =============================================================== #
     for epoch in range(1, args.epochs):
         loss_all = 0
         model.train()
@@ -108,7 +133,9 @@ if __name__ == '__main__':
     
         print('Epoch {}, Loss {:.4f}'.format(epoch, loss_all / len(dataloader)))
     
-        if epoch % 1 == 0:
+        if epoch % log_interval == 0:
+
+            # evaulate embeddings
             model.eval()
             emb = model.get_embedding(wholegraph)
             res = evaluate_embedding(emb, labels)
@@ -121,7 +148,7 @@ if __name__ == '__main__':
                 best_loss = loss_all
     
         if epoch % 5 == 0:
-            print('logreg {:4f}, best svc {:4f}, best_epoch: {}, best_loss: {}'.format(res[0], best_svc, best_epoch,
+            print('best_logreg {:4f} best svc {:4f}, best_epoch: {}, best_loss: {}'.format(res[0], best_svc, best_epoch,
                                                                                        best_loss))
     print('Training End')
     print('best svc {:4f}'.format(best_svc))
