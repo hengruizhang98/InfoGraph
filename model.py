@@ -159,29 +159,29 @@ class NNConvEncoder(nn.Module):
         return out, feat_map[-1]
 
 
-
 class InfoGraphS(nn.Module):
     ''' InfoGraph* model for semi-supervised setting '''
-    def __init__(self, n_feature, hid_dim):
+
+
+    def __init__(self, in_dim, hid_dim):
         super(InfoGraphS, self).__init__()
 
-        self.sup_encoder = NNConvEncoder(n_feature, hid_dim)
-        self.unsup_encoder = NNConvEncoder(n_feature, hid_dim)
+        self.sup_encoder = NNConvEncoder(in_dim, hid_dim)
+        self.unsup_encoder = NNConvEncoder(hid_dim, hid_dim)
 
         self.fc1 = Linear(2 * hid_dim, hid_dim)
         self.fc2 = Linear(hid_dim, 1)
 
-        self.unsup_local_d = FFNN(hid_dim, hid_dim)
-        self.unsup_global_d = FFNN(2 * hid_dim, hid_dim)
+        # unsupervised local discriminator and global discriminator for local-global infomax
+        self.unsup_local_d = FeedforwardNetwork(hid_dim, hid_dim)
+        self.unsup_global_d = FeedforwardNetwork(2 * hid_dim, hid_dim)
 
-        self.sup_d = FFNN(2 * hid_dim, hid_dim)
-        self.unsup_d = FFNN(2 * hid_dim, hid_dim)
+        # supervised global discriminator and unsupervised global discriminator for global-global infomax
+        self.sup_d = FeedforwardNetwork(2 * hid_dim, hid_dim)
+        self.unsup_d = FeedforwardNetwork(2 * hid_dim, hid_dim)
 
+    def forward(self, graph, nfeat, efeat):
 
-    def forward(self, graph):
-
-        nfeat = graph.ndata.pop('attr')
-        efeat = graph.edata.pop('edge_attr')
         sup_global_emb, sup_local_emb = self.sup_encoder(graph, nfeat, efeat)
 
         sup_global_pred = self.fc2(F.relu(self.fc1(sup_global_emb)))
@@ -189,11 +189,7 @@ class InfoGraphS(nn.Module):
 
         return sup_global_pred
     
-    def unsup_forward(self, graph):
-
-        nfeat = graph.ndata.pop('attr')
-        efeat = graph.edata.pop('edge_attr')
-        graph_id = graph.ndata.pop('graph_id')
+    def unsup_forward(self, graph, nfeat, efeat, graph_id):
 
         sup_global_emb, sup_local_emb = self.sup_encoder(graph, nfeat, efeat)
         unsup_global_emb, unsup_local_emb = self.unsup_encoder(graph, nfeat, efeat)
@@ -210,34 +206,3 @@ class InfoGraphS(nn.Module):
         con_loss = global_global_loss_(sup_g_enc, unsup_g_enc, measure)    
         
         return unsup_loss, con_loss
-
-    # def consistency_loss(self, graph, nfeat, efeat):
-
-
-        
-    
-    # def forward(self, graph):
-    #     nfeat = graph.ndata.pop('attr')
-    #     efeat = graph.edata.pop('edge_attr')
-
-    #     graph_id = graph.ndata.pop('graph_id')
-
-    #     sup_global_emb, sup_local_emb = self.sup_encoder(graph, nfeat, efeat)
-
-    #     sup_global_pred = self.fc2(F.relu(self.fc1(sup_global_emb)))
-    #     sup_global_pred = sup_global_pred.view(-1)
-
-    #     unsup_global_emb, unsup_local_emb = self.unsup_encoder(graph, nfeat, efeat)
-
-    #     g_enc = self.unsup_global_d(unsup_global_emb)
-    #     l_enc = self.unsup_local_d(unsup_local_emb)
-
-    #     sup_g_enc = self.sup_d(sup_global_emb)
-    #     unsup_g_enc = self.unsup_d(unsup_global_emb)
-
-    #     # Calculate loss
-    #     measure = 'JSD'
-    #     unsup_loss = local_global_loss_(l_enc, g_enc, graph_id, measure)
-    #     con_loss = global_global_loss_(sup_g_enc, unsup_g_enc, measure)
-
-        # return sup_global_pred, unsup_loss, con_loss

@@ -20,13 +20,17 @@ def argument():
     parser.add_argument('--gpu', type=int, default=-1, help='GPU index, default:-1, using CPU.')
     parser.add_argument('--epochs', type=int, default=400, help='Training epochs.')
     parser.add_argument('--batch_size', type=int, default=20, help='Training batch size.')
+    parser.add_argument('--val_batch_size', type=int, default=100, help='Validating batch size.')
+
     parser.add_argument('--lr', type=float, default=0.001, help='Learning rate.')
+    parser.add_argument('--wd', type=float, default=0, help='weight decay.')
 
     # model params
     parser.add_argument('--hid_dim', type=int, default=64, help='Hidden layer dimensionalities')
     parser.add_argument('--reg', type=int, default=0.001, help='regularization coefficent')
 
     args = parser.parse_args()
+
     # check cuda
     if args.gpu != -1 and th.cuda.is_available():
         args.device = 'cuda:{}'.format(args.gpu)
@@ -37,7 +41,7 @@ def argument():
 
 
 def collate(samples):
-    ''' an auxiliary function for building graph dataloader'''
+    ''' collate function for building graph dataloader '''
 
     graphs, targets = map(list, zip(*samples))
     batched_graph = dgl.batch(graphs)
@@ -60,29 +64,35 @@ def collate(samples):
 
 if __name__ == '__main__':
 
+    # Step 1: Prepare graph data   ===================================== #
     args = argument()
     print(args)
-
-    device = 'cuda:0'
 
     dataset = QM9Dataset()
 
     graphs = dataset.graphs
+
+    # Train/Val/Test Splitting
     N = len(graphs)
     all_idx = np.arange(N)
     np.random.shuffle(all_idx)
 
-    val_idx = all_idx[:10000]
-    test_idx = all_idx[10000:20000]
-    train_idx = all_idx[20000:20000 + args.train_num]
+    val_num = 10000
+    test_num = 10000
+
+    val_idx = all_idx[:val_num]
+    test_idx = all_idx[val_num : val_num + test_num]
+    train_idx = all_idx[val_num + test_num : val_num + test_num + args.train_num]
 
     train_data = [dataset[i] for i in train_idx]
     val_data = [dataset[i] for i in val_idx]
     test_data = [dataset[i] for i in test_idx]
 
-    unsup_idx = all_idx[20000:]
+    unsup_idx = all_idx[val_num + test_num:]
     unsup_data = [dataset[i] for i in unsup_idx]
 
+
+    # generate supervised training dataloader and unsupervised training dataloader
     train_loader = DataLoader(train_data,
                               batch_size=args.batch_size,
                               collate_fn=collate,
@@ -95,28 +105,49 @@ if __name__ == '__main__':
                               drop_last=False,
                               shuffle=True)
 
-    in_dim = dataset[0][0].ndata['attr'].shape[1]
+    # generate validation & testing datalaoder
 
-    tar = 1
-    patience = 0
-    print('======== target = {} ========'.format(tar))
-    args.target = tar
+    val_loader = DataLoader(val_data,
+                              batch_size=args.val_batch_size,
+                              collate_fn=collate,
+                              drop_last=False,
+                              shuffle=True)
+
+    test_loader = DataLoader(test_data,
+                              batch_size=args.val_batch_size,
+                              collate_fn=collate,
+                              drop_last=False,
+                              shuffle=True)
+
+
+    print('======== target = {} ========'.format(args.target))
+
     mean = dataset[:][1][:, args.target].mean().item()
     std = dataset[:][1][:, args.target].std().item()
 
+    print('mean = {:4f}'.format(mean))
+    print('std = {:4f}'.format(std))
+
+    in_dim = dataset[0][0].ndata['attr'].shape[1]
+
+    patience = 0
+
+    # Step 2: Create model =================================================================== #
     model = InfoGraphS(in_dim, args.hid_dim)
     model = model.to(args.device)
 
-    optimizer = th.optim.Adam(model.parameters(), lr=0.001, weight_decay=0)
+    # Step 3: Create training components ===================================================== #
+    optimizer = th.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
     scheduler = th.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.7, patience=6, min_lr=0.000001
+        optimizer, mode='min', factor=0.7, patience=5, min_lr=0.000001
     )
 
+    # Step 4: training epoches =============================================================== #
     sup_loss_all = 0
     unsup_loss_all = 0
     consis_loss_all = 0
 
-    best_val_error = 100
+    best_val_error = 999999
     for epoch in range(args.epochs):
         ''' Training '''
         model.train()
@@ -126,32 +157,28 @@ if __name__ == '__main__':
         sup_loss_all = 0
         unsup_loss_all = 0
         consis_loss_all = 0
-        for data1, data2 in zip(train_loader, unsup_loader):
-            graph1, target1 = data1
-            graph2, target2 = data2
 
-            graph1 = graph1.to(args.device)
-            graph2 = graph2.to(args.device)
+        for sup_data, unsup_data in zip(train_loader, unsup_loader):
+            sup_graph, sup_target = sup_data
+            unsup_graph, unsup_target2 = unsup_data
 
-            target1 = (target1[:, args.target] - mean) / std
-            target2 = (target2[:, args.target] - mean) / std
+            sup_graph = sup_graph.to(args.device)
+            unsup_graph = unsup_graph.to(args.device)
 
-            target1 = target1.to(args.device)
-            target2 = target2.to(args.device)
+            sup_target = (sup_target[:, args.target] - mean) / std
+            sup_target = sup_target.to(args.device)
 
             optimizer.zero_grad()
 
-            nfeat1 = graph1.ndata.pop('attr')
-            efeat1 = graph1.edata.pop('edge_attr')
-            graph_id1 = graph1.ndata.pop('graph_id')
+            sup_nfeat = sup_graph.ndata.pop('attr')
+            sup_efeat = sup_graph.edata.pop('edge_attr')
 
-            nfeat2 = graph2.ndata.pop('attr')
-            efeat2 = graph2.edata.pop('edge_attr')
-            graph_id2 = graph2.ndata.pop('graph_id')
+            unsup_nfeat = unsup_graph.ndata.pop('attr')
+            unsup_efeat = unsup_graph.edata.pop('edge_attr')
+            unsup_graph_id = unsup_graph.ndata.pop('graph_id')
 
-            sup_loss = F.mse_loss(model.sup_pred(graph1, nfeat1, efeat1), target1)
-
-            unsup_loss, consis_loss = model.generate_loss(graph2, nfeat2, efeat2, graph_id2)
+            sup_loss = F.mse_loss(model(sup_graph, sup_nfeat, sup_efeat), sup_target)
+            unsup_loss, consis_loss = model.unsup_forward(unsup_graph, unsup_nfeat, unsup_efeat, unsup_graph_id)
 
             loss = sup_loss + unsup_loss + args.reg * consis_loss
 
@@ -171,42 +198,67 @@ if __name__ == '__main__':
         val_error = 0
         test_error = 0
 
-        for i in range(100):
-            val_graphs = [a[0] for a in val_data[i * 100:(i + 1) * 100]]
-            val_targets = [a[1][args.target] for a in val_data[i * 100:(i + 1) * 100]]
-            val_target = ((th.stack(val_targets) - mean) / std).to(args.device)
-            val_graph = dgl.batch(val_graphs).to(args.device)
+        for val_graphs, val_targets in val_loader:
+
+            val_graph = val_graphs.to(args.device)
+            val_target = (val_targets[:, args.target] - mean) / std
+            val_target = val_target.to(args.device)
+
             val_nfeat = val_graph.ndata['attr']
             val_efeat = val_graph.edata['edge_attr']
-            val_error += (model.sup_pred(val_graph, val_nfeat, val_efeat) * std - val_target * std).abs().sum().item()
 
-        val_error = val_error / 10000
+            val_error += (model(val_graph, val_nfeat, val_efeat) * std - val_target * std).abs().sum().item()
+
+
+        # for i in range(100):
+        #     val_graphs = [a[0] for a in val_data[i * 100:(i + 1) * 100]]
+        #     val_targets = [a[1][args.target] for a in val_data[i * 100:(i + 1) * 100]]
+        #     val_target = ((th.stack(val_targets) - mean) / std).to(args.device)
+        #     val_graph = dgl.batch(val_graphs).to(args.device)
+        #     val_nfeat = val_graph.ndata['attr']
+        #     val_efeat = val_graph.edata['edge_attr']
+        #     val_error += (model(val_graph, val_nfeat, val_efeat) * std - val_target * std).abs().sum().item()
+
+        val_error = val_error / val_num
         scheduler.step(val_error)
 
         if val_error < best_val_error:
             best_val_error = val_error
             patience = 0
 
-            for i in range(100):
-                test_graphs = [a[0] for a in test_data[i * 100:(i + 1) * 100]]
-                test_targets = [a[1][args.target] for a in test_data[i * 100:(i + 1) * 100]]
-                test_target = ((th.stack(test_targets) - mean) / std).to(args.device)
-                test_graph = dgl.batch(test_graphs).to(args.device)
+            for test_graphs, test_targets in test_loader:
+
+                test_graph = test_graphs.to(args.device)
+                test_target = (test_targets[:, args.target] - mean) / std
+                test_target = test_target.to(args.device)
+
                 test_nfeat = test_graph.ndata['attr']
                 test_efeat = test_graph.edata['edge_attr']
-                test_error += (model.sup_pred(test_graph, test_nfeat,
-                                              test_efeat) * std - test_target * std).abs().sum().item()
-            test_error = test_error / 10000
+
+                test_error += (model(test_graph, test_nfeat, test_efeat) * std - test_target * std).abs().sum().item()
+
+            # for i in range(100):
+            #     test_graphs = [a[0] for a in test_data[i * 100:(i + 1) * 100]]
+            #     test_targets = [a[1][args.target] for a in test_data[i * 100:(i + 1) * 100]]
+            #     test_target = ((th.stack(test_targets) - mean) / std).to(args.device)
+            #     test_graph = dgl.batch(test_graphs).to(args.device)
+            #     test_nfeat = test_graph.ndata['attr']
+            #     test_efeat = test_graph.edata['edge_attr']
+            #     test_error += (model(test_graph, test_nfeat,
+            #                                   test_efeat) * std - test_target * std).abs().sum().item()
+
+            test_error = test_error / test_num
             best_test_error = test_error
+
         else:
             patience += 1
 
-        print('Epoch: {}, LR: {}, best_val_error: {:.4f}, val_error: {:.4f}, test_error: {:.4f}' \
+        print('Epoch: {}, LR: {}, best_val_error: {:.4f}, val_error: {:.4f}, best_test_error: {:.4f}' \
               .format(epoch, lr, best_val_error, val_error, best_test_error))
 
-        # if patience == 20:
-        #     print('training ends')
-        #     break
+        if patience == 20:
+            print('training ends')
+            break
 
     with open('semisupervised.log', 'a+') as f:
-        f.write('{},{},{}\n'.format(tar, val_error, test_error))
+        f.write('{},{},{}\n'.format(args.target, val_error, test_error))

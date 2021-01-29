@@ -17,7 +17,7 @@ Contributor: Hengrui Zhang ([@hengruizhang98](https://github.com/hengruizhang98)
 
 ## Dataset
 
-Unsupervised Graph Classification Setting(TUDataset, GINDataset):
+Unsupervised Graph Classification Setting (dgl.data.GINDataset):
 
 |   Dataset    | MUTAG | PTC  | **IMDBBINARY** | **IMDBMULTI** | **REDDITBINARY** | **REDDITMULTI5K** |
 | :----------: | :---: | :--: | :------------: | :-----------: | :--------------: | :---------------: |
@@ -25,7 +25,7 @@ Unsupervised Graph Classification Setting(TUDataset, GINDataset):
 | # Avg. Nodes |       |      |                |               |                  |                   |
 | # Avg. Edges |       |      |                |               |                  |                   |
 
-Semi-supervised Graph Regression Setting(QM9Dataset):
+Semi-supervised Graph Regression Setting (QM9Dataset):
 
 | Dataset | # Graphs | # Avg. Nodes | #  Avg. Edges |
 | ------- | -------- | ------------ | ------------- |
@@ -116,21 +116,20 @@ python semisupervised.py --gpu 0 --target 0
 
 The hyperparameter setting in our implementation is identical to that reported in the paper.
 
-
-
 Unsupervised Setting
 
-|     MUTAG      |      PTC       |      Dataset      |     REDDIT-B     | REDDIT-M | IMDB-B | IMDB-M |
-| :------------: | :------------: | :---------------: | :--------------: | -------- | ------ | ------ |
-| **85.4(±0.4)** | **75.4(±0.4)** | Accuracy Reported |    82.7(±0.6)    |          |        |        |
-|  85.33(±0.41)  |  75.36(±0.36)  |  This repository  | **82.90(±0.66)** |          |        |        |
+|      Dataset      | MUTAG | PTC  | REDDIT-B | REDDIT-M | IMDB-B | IMDB-M |
+| :---------------: | :---: | :--: | :------: | -------- | ------ | ------ |
+| Accuract Reported |       |      |          |          |        |        |
+|  This repository  |       |      |          |          |        |        |
 
 
 
 Semi-supervised setting
 
-|       Task        | Mu, $\mu$ (0)  | Alpha, $\alpha$ (1) |     REDDIT-B     | REDDIT-M | IMDB-B | IMDB-M |
-| :---------------: | :------------: | :-----------------: | :--------------: | -------- | ------ | ------ |
-| Accuracy Reported | **85.4(±0.4)** |   **75.4(±0.4)**    |    82.7(±0.6)    |          |        |        |
-|  This repository  |  85.33(±0.41)  |    75.36(±0.36)     | **82.90(±0.66)** |          |        |        |
+|      Task       | Mu, $\mu$ (0)  | Alpha, $\alpha$ (1) |      |      |      |
+| :-------------: | :------------: | :-----------------: | :--: | ---- | ---- |
+|  RMSE Reported  | **85.4(±0.4)** |   **75.4(±0.4)**    |      |      |      |
+| Author's codes  |  85.33(±0.41)  |    75.36(±0.36)     |      |      |      |
+| This repository |                |                     |      |      |      |
 

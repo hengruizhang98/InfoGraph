@@ -1,4 +1,5 @@
-''' Credit  https://github.com/fanyun-sun/InfoGraph/blob/master/unsupervised/evaluate_embedding.py '''
+''' Evaluate unsupervised embedding using a variety of basic classifiers. '''
+''' Credit  https://github.com/fanyun-sun/InfoGraph '''
 
 from sklearn import preprocessing
 from sklearn.ensemble import RandomForestClassifier

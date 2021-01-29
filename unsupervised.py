@@ -1,15 +1,14 @@
 import torch as th
+from torch.utils.data import DataLoader
 
 import dgl
 from dgl.data import GINDataset
-
-from torch.utils.data import DataLoader
-# from dgl.dataloading.pytorch import GraphDataLoader
 
 from model import InfoGraph
 from evaluate_embedding import evaluate_embedding
 
 import argparse
+
 
 def argument():
     parser = argparse.ArgumentParser(description='InfoGraph')
@@ -28,6 +27,7 @@ def argument():
     parser.add_argument('--hid_dim', type=int, default=32, help='Hidden layer dimensionalities')
 
     args = parser.parse_args()
+
     # check cuda
     if args.gpu != -1 and th.cuda.is_available():
         args.device = 'cuda:{}'.format(args.gpu)
@@ -69,6 +69,8 @@ if __name__ == '__main__':
 
     # Step 1: Prepare graph data   ===================================== #
     args = argument()
+    print(args)
+
     log_interval = 1
 
     # load dataset from dgl.data.GINDataset
@@ -80,12 +82,6 @@ if __name__ == '__main__':
     # generate a graph with all examples for evaluation
     wholegraph = dgl.batch(graphs)
     wholegraph.ndata['attr'] = wholegraph.ndata['attr'].to(th.float32)
-
-    # dataloader = GraphDataLoader(dataset,
-    #                              batchsize = args.batchsize,
-    #                              collate_fn = collate,
-    #                              drop_last=False,
-    #                              shuffle=True)
 
     # creta dataloader for batch training
     dataloader = DataLoader(dataset,
