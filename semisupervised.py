@@ -91,7 +91,6 @@ if __name__ == '__main__':
     unsup_idx = all_idx[val_num + test_num:]
     unsup_data = [dataset[i] for i in unsup_idx]
 
-
     # generate supervised training dataloader and unsupervised training dataloader
     train_loader = DataLoader(train_data,
                               batch_size=args.batch_size,
@@ -170,15 +169,8 @@ if __name__ == '__main__':
 
             optimizer.zero_grad()
 
-            sup_nfeat = sup_graph.ndata.pop('attr')
-            sup_efeat = sup_graph.edata.pop('edge_attr')
-
-            unsup_nfeat = unsup_graph.ndata.pop('attr')
-            unsup_efeat = unsup_graph.edata.pop('edge_attr')
-            unsup_graph_id = unsup_graph.ndata.pop('graph_id')
-
-            sup_loss = F.mse_loss(model(sup_graph, sup_nfeat, sup_efeat), sup_target)
-            unsup_loss, consis_loss = model.unsup_forward(unsup_graph, unsup_nfeat, unsup_efeat, unsup_graph_id)
+            sup_loss = F.mse_loss(model(sup_graph), sup_target)
+            unsup_loss, consis_loss = model.unsup_forward(unsup_graph)
 
             loss = sup_loss + unsup_loss + args.reg * consis_loss
 
@@ -196,7 +188,7 @@ if __name__ == '__main__':
         model.eval()
 
         val_error = 0
-        test_error = 0
+        best_test_error = 99999
 
         for val_graphs, val_targets in val_loader:
 
@@ -204,10 +196,7 @@ if __name__ == '__main__':
             val_target = (val_targets[:, args.target] - mean) / std
             val_target = val_target.to(args.device)
 
-            val_nfeat = val_graph.ndata['attr']
-            val_efeat = val_graph.edata['edge_attr']
-
-            val_error += (model(val_graph, val_nfeat, val_efeat) * std - val_target * std).abs().sum().item()
+            val_error += (model(val_graph) * std - val_target * std).abs().sum().item()
 
         val_error = val_error / val_num
         scheduler.step(val_error)
@@ -221,10 +210,7 @@ if __name__ == '__main__':
                 test_target = (test_targets[:, args.target] - mean) / std
                 test_target = test_target.to(args.device)
 
-                test_nfeat = test_graph.ndata['attr']
-                test_efeat = test_graph.edata['edge_attr']
-
-                test_error += (model(test_graph, test_nfeat, test_efeat) * std - test_target * std).abs().sum().item()
+                test_error += (model(test_graph) * std - test_target * std).abs().sum().item()
 
 
             test_error = test_error / test_num

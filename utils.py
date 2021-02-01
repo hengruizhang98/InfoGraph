@@ -1,11 +1,11 @@
+''' Credit: https://github.com/fanyun-sun/InfoGraph '''
+
 import torch
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
 
 import math
-
-''' Credit: https://github.com/fanyun-sun/InfoGraph '''
 
 def log_sum_exp(x, axis=None):
     """Log sum exp function
@@ -109,8 +109,7 @@ def local_global_loss_(l_enc, g_enc, graph_id, measure):
     neg_mask = th.ones((num_nodes, num_graphs)).to(device)
 
     for nodeidx, graphidx in enumerate(graph_id):
-        # print(nodeidx)
-        # print(graphidx)
+
         pos_mask[nodeidx][graphidx] = 1.
         neg_mask[nodeidx][graphidx] = 0.
 

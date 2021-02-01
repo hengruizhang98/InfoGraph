@@ -10,9 +10,20 @@ from utils import global_global_loss_, local_global_loss_
 
 
 ''' Feedforward neural network'''
-
 class FeedforwardNetwork(nn.Module):
-    ''' 3-layer feed-forward neural networks with jumping connections'''
+
+    '''
+    3-layer feed-forward neural networks with jumping connections
+    Parameters
+    -----------
+    in_dim: int, Input feature size.
+    hid_dim: int, Hidden feature size.
+
+    Functions
+    -----------
+    forward(feat):
+        feat: Tensor, [N * D], input features
+    '''
 
     def __init__(self, in_dim, hid_dim):
         super(FeedforwardNetwork, self).__init__()
@@ -39,6 +50,21 @@ class FeedforwardNetwork(nn.Module):
 ''' Unsupervised Setting '''
 
 class GINEncoder(nn.Module):
+    '''
+    Encoder based on dgl.nn.GINConv &  dgl.nn.SumPooling
+    Parameters
+    -----------
+    in_dim: int, Input feature size.
+    hid_dim: int, Hidden feature size.
+    n_layer: int, number of GIN layers.
+
+    Functions
+    -----------
+    forward(graph, feat):
+        graph: dgl.Graph,
+        feat: Tensor, [N * D], node features
+    '''
+
     def __init__(self, in_dim, hid_dim, n_layer):
         super(GINEncoder, self).__init__()
 
@@ -67,7 +93,6 @@ class GINEncoder(nn.Module):
         # sum pooling
         self.pool = SumPooling()
 
-
     def forward(self, graph, feat):
 
         xs = []
@@ -84,15 +109,33 @@ class GINEncoder(nn.Module):
 
 
 class InfoGraph(nn.Module):
-    # Unsupervised model InfoGraph
+    r"""
+        InfoGraph model for unsupervised setting
 
-    def __init__(self, n_feature, hid_dim, n_layer):
+    Parameters
+    -----------
+    in_dim: int
+        Input feature size.
+    hid_dim: int
+        Hidden feature size.
+
+    Functions
+    -----------
+    forward(graph):
+        graph: dgl.Graph
+
+    """
+
+    def __init__(self, in_dim, hid_dim, n_layer):
         super(InfoGraph, self).__init__()
+
+        self.in_dim = in_dim
+        self.hid_dim = hid_dim
 
         self.n_layer = n_layer
         embedding_dim = hid_dim * n_layer
 
-        self.encoder = GINEncoder(n_feature, hid_dim, n_layer)
+        self.encoder = GINEncoder(in_dim, hid_dim, n_layer)
 
         self.local_d = FeedforwardNetwork(embedding_dim, embedding_dim)   # local discriminator (node-level)
         self.global_d = FeedforwardNetwork(embedding_dim, embedding_dim)  # global discriminator (graph-level)
@@ -107,8 +150,9 @@ class InfoGraph(nn.Module):
         return global_emb
 
     def forward(self, graph):
-        feat = graph.ndata.pop('attr')
-        graph_id = graph.ndata.pop('graph_id')
+
+        feat = graph.ndata['attr']
+        graph_id = graph.ndata['graph_id']
 
         global_emb, local_emb = self.encoder(graph, feat)
 
@@ -124,45 +168,60 @@ class InfoGraph(nn.Module):
 ''' Semisupevised Setting '''
 
 class NNConvEncoder(nn.Module):
-    # Encoder based on dgl.nn.NNConv & GRU & dgl.nn.set2set pooling
-    def __init__(self, in_dim, hid_dim):
-        super(NNConvEncoder, self).__init__()
 
-        self.lin0 = Linear(in_dim, hid_dim)
+    '''
+    Encoder based on dgl.nn.NNConv & GRU & dgl.nn.set2set pooling
+    Parameters
+    -----------
+    in_dim: int, Input feature size.
+    hid_dim: int, Hidden feature size.
 
-        # mlp for edge convolution in NNConv
-        block = Sequential(Linear(5, 128), ReLU(), Linear(128, hid_dim * hid_dim))
+    Functions
+    -----------
+    forward(graph, nfeat, efeat):
+        graph: dgl.Graph,
+        nfeat: Tensor, [N * D1], node features
+        efeat: Tensor, [E * D2], edge features
+    '''
 
-        self.conv = NNConv(hid_dim, hid_dim, block, aggregator_type = 'mean', residual = False)
-        self.gru = GRU(hid_dim, hid_dim)
+def __init__(self, in_dim, hid_dim):
+    super(NNConvEncoder, self).__init__()
 
-        # set2set pooling
-        self.set2set = Set2Set(hid_dim, n_iters=3, n_layers=1)
+    self.lin0 = Linear(in_dim, hid_dim)
 
-    def forward(self, graph, nfeat, efeat):
+    # mlp for edge convolution in NNConv
+    block = Sequential(Linear(5, 128), ReLU(), Linear(128, hid_dim * hid_dim))
 
-        out = F.relu(self.lin0(nfeat))
-        h = out.unsqueeze(0)
+    self.conv = NNConv(hid_dim, hid_dim, block, aggregator_type = 'mean', residual = False)
+    self.gru = GRU(hid_dim, hid_dim)
 
-        feat_map = []
+    # set2set pooling
+    self.set2set = Set2Set(hid_dim, n_iters=3, n_layers=1)
 
-        # Convolution layer number is 3
-        for i in range(3):
-            m = F.relu(self.conv(graph, out, efeat))
-            out, h = self.gru(m.unsqueeze(0), h)
-            out = out.squeeze(0)
-            feat_map.append(out)
+def forward(self, graph, nfeat, efeat):
 
-        out = self.set2set(graph, out)
+    out = F.relu(self.lin0(nfeat))
+    h = out.unsqueeze(0)
 
-        # out: global embedding, feat_map[-1]: local embedding
-        return out, feat_map[-1]
+    feat_map = []
+
+    # Convolution layer number is 3
+    for i in range(3):
+        m = F.relu(self.conv(graph, out, efeat))
+        out, h = self.gru(m.unsqueeze(0), h)
+        out = out.squeeze(0)
+        feat_map.append(out)
+
+    out = self.set2set(graph, out)
+
+    # out: global embedding, feat_map[-1]: local embedding
+    return out, feat_map[-1]
 
 
 class InfoGraphS(nn.Module):
-    r"""
-        InfoGraph* model for semi-supervised setting
 
+    '''
+    InfoGraph* model for semi-supervised setting
     Parameters
     -----------
     in_dim: int
@@ -172,16 +231,13 @@ class InfoGraphS(nn.Module):
 
     Functions
     -----------
-    forward(graph, nfeat, efeat):
+    forward(graph):
+        graph: dgl.Graph,
 
-    graph: dgl.Graph,
-    nfeat: node features,
-    efeat: edge features.
-
-    unsupforward()
-
-
-    """
+    unsupforward(graph):
+        graph: dgl.Graph
+        
+    '''
 
     def __init__(self, in_dim, hid_dim):
         super(InfoGraphS, self).__init__()
@@ -200,7 +256,10 @@ class InfoGraphS(nn.Module):
         self.sup_d = FeedforwardNetwork(2 * hid_dim, hid_dim)
         self.unsup_d = FeedforwardNetwork(2 * hid_dim, hid_dim)
 
-    def forward(self, graph, nfeat, efeat):
+    def forward(self, graph):
+
+        nfeat = graph.ndata['attr']
+        efeat = graph.edata['edge_attr']
 
         sup_global_emb, sup_local_emb = self.sup_encoder(graph, nfeat, efeat)
 
@@ -209,7 +268,11 @@ class InfoGraphS(nn.Module):
 
         return sup_global_pred
     
-    def unsup_forward(self, graph, nfeat, efeat, graph_id):
+    def unsup_forward(self, graph):
+
+        nfeat = graph.ndata['attr']
+        efeat = graph.edata['edge_attr']
+        graph_id = graph.ndata['graph_id']
 
         sup_global_emb, sup_local_emb = self.sup_encoder(graph, nfeat, efeat)
         unsup_global_emb, unsup_local_emb = self.unsup_encoder(graph, nfeat, efeat)
