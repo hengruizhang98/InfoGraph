@@ -36,7 +36,7 @@ class FeedforwardNetwork(nn.Module):
         return out
 
 
-''' Unsupevised Setting '''
+''' Unsupervised Setting '''
 
 class GINEncoder(nn.Module):
     def __init__(self, in_dim, hid_dim, n_layer):
@@ -160,8 +160,28 @@ class NNConvEncoder(nn.Module):
 
 
 class InfoGraphS(nn.Module):
-    ''' InfoGraph* model for semi-supervised setting '''
+    r"""
+        InfoGraph* model for semi-supervised setting
 
+    Parameters
+    -----------
+    in_dim: int
+        Input feature size.
+    hid_dim: int
+        Hidden feature size.
+
+    Functions
+    -----------
+    forward(graph, nfeat, efeat):
+
+    graph: dgl.Graph,
+    nfeat: node features,
+    efeat: edge features.
+
+    unsupforward()
+
+
+    """
 
     def __init__(self, in_dim, hid_dim):
         super(InfoGraphS, self).__init__()

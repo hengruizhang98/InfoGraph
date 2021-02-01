@@ -209,22 +209,11 @@ if __name__ == '__main__':
 
             val_error += (model(val_graph, val_nfeat, val_efeat) * std - val_target * std).abs().sum().item()
 
-
-        # for i in range(100):
-        #     val_graphs = [a[0] for a in val_data[i * 100:(i + 1) * 100]]
-        #     val_targets = [a[1][args.target] for a in val_data[i * 100:(i + 1) * 100]]
-        #     val_target = ((th.stack(val_targets) - mean) / std).to(args.device)
-        #     val_graph = dgl.batch(val_graphs).to(args.device)
-        #     val_nfeat = val_graph.ndata['attr']
-        #     val_efeat = val_graph.edata['edge_attr']
-        #     val_error += (model(val_graph, val_nfeat, val_efeat) * std - val_target * std).abs().sum().item()
-
         val_error = val_error / val_num
         scheduler.step(val_error)
 
         if val_error < best_val_error:
             best_val_error = val_error
-            patience = 0
 
             for test_graphs, test_targets in test_loader:
 
@@ -237,28 +226,10 @@ if __name__ == '__main__':
 
                 test_error += (model(test_graph, test_nfeat, test_efeat) * std - test_target * std).abs().sum().item()
 
-            # for i in range(100):
-            #     test_graphs = [a[0] for a in test_data[i * 100:(i + 1) * 100]]
-            #     test_targets = [a[1][args.target] for a in test_data[i * 100:(i + 1) * 100]]
-            #     test_target = ((th.stack(test_targets) - mean) / std).to(args.device)
-            #     test_graph = dgl.batch(test_graphs).to(args.device)
-            #     test_nfeat = test_graph.ndata['attr']
-            #     test_efeat = test_graph.edata['edge_attr']
-            #     test_error += (model(test_graph, test_nfeat,
-            #                                   test_efeat) * std - test_target * std).abs().sum().item()
 
             test_error = test_error / test_num
             best_test_error = test_error
 
-        else:
-            patience += 1
 
         print('Epoch: {}, LR: {}, best_val_error: {:.4f}, val_error: {:.4f}, best_test_error: {:.4f}' \
               .format(epoch, lr, best_val_error, val_error, best_test_error))
-
-        if patience == 20:
-            print('training ends')
-            break
-
-    with open('semisupervised.log', 'a+') as f:
-        f.write('{},{},{}\n'.format(args.target, val_error, test_error))
