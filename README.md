@@ -118,18 +118,18 @@ The hyperparameter setting in our implementation is identical to that reported i
 
 Unsupervised Setting
 
-|      Dataset      | MUTAG | PTC  | REDDIT-B | REDDIT-M | IMDB-B | IMDB-M |
-| :---------------: | :---: | :--: | :------: | -------- | ------ | ------ |
-| Accuract Reported |       |      |          |          |        |        |
-|  This repository  |       |      |          |          |        |        |
+|      Dataset      |   MUTAG    |   PTC-MR   |  REDDIT-B  | REDDIT-M   | IMDB-B     | IMDB-M     |
+| :---------------: | :--------: | :--------: | :--------: | ---------- | ---------- | ---------- |
+| Accuract Reported | 89.01±1.13 | 61.65±1.43 | 82.50±1.42 | 53.46±1.03 | 73.03±0.87 | 49.69±0.53 |
+|  This repository  |            |            |            |            |            |            |
 
 
 
 Semi-supervised setting
 
-|      Task       | Mu, $\mu$ (0)  | Alpha, $\alpha$ (1) |      |      |      |
-| :-------------: | :------------: | :-----------------: | :--: | ---- | ---- |
-|  RMSE Reported  | **85.4(±0.4)** |   **75.4(±0.4)**    |      |      |      |
-| Author's codes  |  85.33(±0.41)  |    75.36(±0.36)     |      |      |      |
-| This repository |                |                     |      |      |      |
+|      Task       | Mu, $\mu$ (0) | Alpha, $\alpha$ (1) | HOMO(2) | LUMO(3) | Gap(4) |
+| :-------------: | :-----------: | :-----------------: | :-----: | ------- | ------ |
+|  RMSE Reported  |               |                     |         |         |        |
+| Author's codes  |               |                     |         |         |        |
+| This repository |               |                     |         |         |        |
 
