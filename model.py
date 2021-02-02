@@ -184,38 +184,38 @@ class NNConvEncoder(nn.Module):
         efeat: Tensor, [E * D2], edge features
     '''
 
-def __init__(self, in_dim, hid_dim):
-    super(NNConvEncoder, self).__init__()
+    def __init__(self, in_dim, hid_dim):
+        super(NNConvEncoder, self).__init__()
 
-    self.lin0 = Linear(in_dim, hid_dim)
+        self.lin0 = Linear(in_dim, hid_dim)
 
-    # mlp for edge convolution in NNConv
-    block = Sequential(Linear(5, 128), ReLU(), Linear(128, hid_dim * hid_dim))
+        # mlp for edge convolution in NNConv
+        block = Sequential(Linear(5, 128), ReLU(), Linear(128, hid_dim * hid_dim))
 
-    self.conv = NNConv(hid_dim, hid_dim, block, aggregator_type = 'mean', residual = False)
-    self.gru = GRU(hid_dim, hid_dim)
+        self.conv = NNConv(hid_dim, hid_dim, block, aggregator_type = 'mean', residual = False)
+        self.gru = GRU(hid_dim, hid_dim)
 
-    # set2set pooling
-    self.set2set = Set2Set(hid_dim, n_iters=3, n_layers=1)
+        # set2set pooling
+        self.set2set = Set2Set(hid_dim, n_iters=3, n_layers=1)
 
-def forward(self, graph, nfeat, efeat):
+    def forward(self, graph, nfeat, efeat):
 
-    out = F.relu(self.lin0(nfeat))
-    h = out.unsqueeze(0)
+        out = F.relu(self.lin0(nfeat))
+        h = out.unsqueeze(0)
 
-    feat_map = []
+        feat_map = []
 
-    # Convolution layer number is 3
-    for i in range(3):
-        m = F.relu(self.conv(graph, out, efeat))
-        out, h = self.gru(m.unsqueeze(0), h)
-        out = out.squeeze(0)
-        feat_map.append(out)
+        # Convolution layer number is 3
+        for i in range(3):
+            m = F.relu(self.conv(graph, out, efeat))
+            out, h = self.gru(m.unsqueeze(0), h)
+            out = out.squeeze(0)
+            feat_map.append(out)
 
-    out = self.set2set(graph, out)
+        out = self.set2set(graph, out)
 
-    # out: global embedding, feat_map[-1]: local embedding
-    return out, feat_map[-1]
+        # out: global embedding, feat_map[-1]: local embedding
+        return out, feat_map[-1]
 
 
 class InfoGraphS(nn.Module):
@@ -243,7 +243,7 @@ class InfoGraphS(nn.Module):
         super(InfoGraphS, self).__init__()
 
         self.sup_encoder = NNConvEncoder(in_dim, hid_dim)
-        self.unsup_encoder = NNConvEncoder(hid_dim, hid_dim)
+        self.unsup_encoder = NNConvEncoder(in_dim, hid_dim)
 
         self.fc1 = Linear(2 * hid_dim, hid_dim)
         self.fc2 = Linear(hid_dim, 1)

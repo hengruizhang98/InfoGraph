@@ -7,8 +7,6 @@ Paper link: https://arxiv.org/abs/1908.01000
 
 Author's code: https://github.com/fanyun-sun/InfoGraph
 
-Contributor: Hengrui Zhang ([@hengruizhang98](https://github.com/hengruizhang98))
-
 ## Dependecies
 
 - Python 3.7

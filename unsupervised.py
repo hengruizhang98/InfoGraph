@@ -14,7 +14,7 @@ def argument():
     parser = argparse.ArgumentParser(description='InfoGraph')
 
     # data source params
-    parser.add_argument('--dataname', evaluate_embeddingtype=str, default='MUTAG', help='Name of dataset. Choose from {MUTAG}')
+    parser.add_argument('--dataname', type=str, default='MUTAG', help='Name of dataset.}')
 
     # training params
     parser.add_argument('--gpu', type=int, default=-1, help='GPU index, default:-1, using CPU.')
