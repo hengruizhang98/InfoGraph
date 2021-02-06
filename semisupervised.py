@@ -1,8 +1,9 @@
 import numpy as np
 import torch as th
-from torch.utils.data import DataLoader
+
 import torch.nn.functional as F
 import dgl
+from dgl.dataloading import GraphDataLoader
 
 from process_data import QM9Dataset
 from model import InfoGraphS
@@ -92,13 +93,13 @@ if __name__ == '__main__':
     unsup_data = [dataset[i] for i in unsup_idx]
 
     # generate supervised training dataloader and unsupervised training dataloader
-    train_loader = DataLoader(train_data,
+    train_loader = GraphDataLoader(train_data,
                               batch_size=args.batch_size,
                               collate_fn=collate,
                               drop_last=False,
                               shuffle=True)
 
-    unsup_loader = DataLoader(unsup_data,
+    unsup_loader = GraphDataLoader(unsup_data,
                               batch_size=args.batch_size,
                               collate_fn=collate,
                               drop_last=False,
@@ -106,7 +107,7 @@ if __name__ == '__main__':
 
     # generate validation & testing datalaoder
 
-    val_loader = DataLoader(val_data,
+    val_loader = GraphDataLoader(val_data,
                               batch_size=args.val_batch_size,
                               collate_fn=collate,
                               drop_last=False,

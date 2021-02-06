@@ -1,8 +1,8 @@
 import torch as th
-from torch.utils.data import DataLoader
 
 import dgl
 from dgl.data import GINDataset
+from dgl.dataloading import GraphDataLoader
 
 from model import InfoGraph
 from evaluate_embedding import evaluate_embedding
@@ -46,7 +46,6 @@ def collate(samples):
     batched_graph = dgl.batch(graphs)
     batched_labels = th.tensor(labels)
 
-
     n_nodes = batched_graph.num_nodes()
 
     # generate graph_id for each node within the batch
@@ -84,7 +83,7 @@ if __name__ == '__main__':
     wholegraph.ndata['attr'] = wholegraph.ndata['attr'].to(th.float32)
 
     # creta dataloader for batch training
-    dataloader = DataLoader(dataset,
+    dataloader = GraphDataLoader(dataset,
                             batch_size=args.batch_size,
                             collate_fn=collate,
                             drop_last=False,
