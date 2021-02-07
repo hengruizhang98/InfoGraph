@@ -12,9 +12,8 @@ import argparse
 
 def argument():
     parser = argparse.ArgumentParser(description='InfoGraph')
-
     # data source params
-    parser.add_argument('--dataname', type=str, default='MUTAG', help='Name of dataset.}')
+    parser.add_argument('--dataname', type=str, default='MUTAG', help='Name of dataset.')
 
     # training params
     parser.add_argument('--gpu', type=int, default=-1, help='GPU index, default:-1, using CPU.')
@@ -23,7 +22,7 @@ def argument():
     parser.add_argument('--lr', type=float, default=0.01, help='Learning rate.')
 
     # model params
-    parser.add_argument('--n_layers', type=int, default=3, help='Number21 of graph convolution layers before each pooling')
+    parser.add_argument('--n_layers', type=int, default=3, help='Number of graph convolution layers before each pooling')
     parser.add_argument('--hid_dim', type=int, default=32, help='Hidden layer dimensionalities')
 
     args = parser.parse_args()
@@ -38,7 +37,6 @@ def argument():
 
     
 def collate(samples):
-
     ''' collate function for building graph dataloader'''
     graphs, labels = map(list, zip(*samples))
 
@@ -59,7 +57,6 @@ def collate(samples):
         id += 1
 
     batched_graph.ndata['graph_id'] = graph_id
-    batched_graph.ndata['attr'] = batched_graph.ndata['attr'].to(th.float32)
 
     return batched_graph, batched_labels
 
@@ -78,11 +75,11 @@ if __name__ == '__main__':
     # get graphs and labels
     graphs, labels = map(list, zip(*dataset))
 
-    # generate a graph with all examples for evaluation
+    # generate a full-graph with all examples for evaluation
     wholegraph = dgl.batch(graphs)
     wholegraph.ndata['attr'] = wholegraph.ndata['attr'].to(th.float32)
 
-    # creta dataloader for batch training
+    # creata dataloader for batch training
     dataloader = GraphDataLoader(dataset,
                             batch_size=args.batch_size,
                             collate_fn=collate,
@@ -98,11 +95,9 @@ if __name__ == '__main__':
     # Step 3: Create training components ===================================================== #
     optimizer = th.optim.Adam(model.parameters(), lr=args.lr)
  
-    
     print('===== Before training ======')
     emb = model.get_embedding(wholegraph)
     res = evaluate_embedding(emb, labels)
-
 
     print('logreg {:4f}, svc {:4f}'.format(res[0], res[1]))
     
@@ -112,7 +107,6 @@ if __name__ == '__main__':
     best_loss = 0
 
     # Step 4: training epoches =============================================================== #
-
     for epoch in range(1, args.epochs):
         loss_all = 0
         model.train()
