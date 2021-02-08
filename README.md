@@ -19,6 +19,14 @@ Author's code: https://github.com/fanyun-sun/InfoGraph
 
  'MUTAG', 'PTC', 'IMDBBINARY', 'IMDBMULTI', 'REDDITBINARY', 'REDDITMULTI5K' of dgl.data.GINDataset.
 
+| Dataset         | MUTAG | PTC   | RDT-B  | RDT-M5K | IMDB-B | IMDB-M |
+| --------------- | ----- | ----- | ------ | ------- | ------ | ------ |
+| # Graphs        | 188   | 344   | 2000   | 4999    | 1000   | 1500   |
+| # Classes       | 2     | 2     | 2      | 5       | 2      | 3      |
+| Avg. Graph Size | 17.93 | 14.29 | 429.63 | 508.52  | 19.77  | 13.00  |
+
+
+
 
 ## Arguments
 
@@ -69,6 +77,7 @@ The hyperparameter setting in our implementation is identical to that reported i
 |      Dataset      |   MUTAG    |    PTC     |  REDDIT-B  | REDDIT-M   | IMDB-B     | IMDB-M     |
 | :---------------: | :--------: | :--------: | :--------: | ---------- | ---------- | ---------- |
 | Accuract Reported | 89.01±1.13 | 61.65±1.43 | 82.50±1.42 | 53.46±1.03 | 73.03±0.87 | 49.69±0.53 |
-|  This repository  |   89.88    |   63.54    |   88.50    |            | 72.70      | 50.13      |
+|  This repository  |   89.88    |   63.54    |   88.50    | 56.27      | 72.70      | 50.13      |
 
+* REDDIT-M dataset would take a quite long time to load and evaluate, be patient. 
 
