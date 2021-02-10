@@ -22,7 +22,7 @@ def argument():
     parser.add_argument('--lr', type=float, default=0.01, help='Learning rate.')
 
     # model params
-    parser.add_argument('--n_layers', type=int, default=4, help='Number of graph convolution layers before each pooling')
+    parser.add_argument('--n_layers', type=int, default=3, help='Number of graph convolution layers before each pooling')
     parser.add_argument('--hid_dim', type=int, default=32, help='Hidden layer dimensionalities')
 
     args = parser.parse_args()
@@ -57,7 +57,6 @@ def collate(samples):
         id += 1
 
     batched_graph.ndata['graph_id'] = graph_id
-    batched_graph.ndata['attr'] = batched_graph.ndata['attr'].to(th.float32)
 
     return batched_graph, batched_labels
 
@@ -97,6 +96,7 @@ if __name__ == '__main__':
     optimizer = th.optim.Adam(model.parameters(), lr=args.lr)
  
     print('===== Before training ======')
+    
     wholegraph = wholegraph.to(args.device)
     emb = model.get_embedding(wholegraph).cpu()
     res = evaluate_embedding(emb, labels)

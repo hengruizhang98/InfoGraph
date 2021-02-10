@@ -1,6 +1,4 @@
 # DGL Implementation of InfoGraph
-(Still under construction)
-
 This DGL example implements the model proposed in the paper [InfoGraph: Unsupervised and Semi-supervised Graph-Level Representation Learning via Mutual Information Maximization](https://arxiv.org/abs/1908.01000).
 
 Paper link: https://arxiv.org/abs/1908.01000
@@ -13,7 +11,7 @@ Author's code: https://github.com/fanyun-sun/InfoGraph
 - PyTorch 1.7.1
 - dgl 0.5.3
 
-## Dataset
+## Datasets
 
 ##### Unsupervised Graph Classification Dataset:
 
@@ -24,8 +22,6 @@ Author's code: https://github.com/fanyun-sun/InfoGraph
 | # Graphs        | 188   | 344   | 2000   | 4999    | 1000   | 1500   |
 | # Classes       | 2     | 2     | 2      | 5       | 2      | 3      |
 | Avg. Graph Size | 17.93 | 14.29 | 429.63 | 508.52  | 19.77  | 13.00  |
-
-
 
 
 ## Arguments
@@ -74,10 +70,10 @@ The hyperparameter setting in our implementation is identical to that reported i
 
 ##### Unsupervised Graph Classification:
 
-|      Dataset      |   MUTAG    |    PTC     |  REDDIT-B  | REDDIT-M   | IMDB-B     | IMDB-M     |
-| :---------------: | :--------: | :--------: | :--------: | ---------- | ---------- | ---------- |
-| Accuract Reported | 89.01±1.13 | 61.65±1.43 | 82.50±1.42 | 53.46±1.03 | 73.03±0.87 | 49.69±0.53 |
-|  This repository  |   89.88    |   63.54    |   88.50    | 56.27      | 72.70      | 50.13      |
+|      Dataset      | MUTAG |  PTC  | REDDIT-B | REDDIT-M | IMDB-B | IMDB-M |
+| :---------------: | :---: | :---: | :------: | -------- | ------ | ------ |
+| Accuract Reported | 89.01 | 61.65 |  82.50   | 53.46    | 73.03  | 49.69  |
+|  This repository  | 89.88 | 63.54 |  88.50   | 56.27    | 72.70  | 50.13  |
 
 * REDDIT-M dataset would take a quite long time to load and evaluate, be patient. 
 
