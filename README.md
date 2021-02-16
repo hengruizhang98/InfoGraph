@@ -9,7 +9,7 @@ Author's code: https://github.com/fanyun-sun/InfoGraph
 
 - Python 3.7
 - PyTorch 1.7.1
-- dgl 0.5.3
+- dgl 0.6.1
 
 ## Datasets
 
@@ -22,6 +22,15 @@ Author's code: https://github.com/fanyun-sun/InfoGraph
 | # Graphs        | 188   | 344   | 2000   | 4999    | 1000   | 1500   |
 | # Classes       | 2     | 2     | 2      | 5       | 2      | 3      |
 | Avg. Graph Size | 17.93 | 14.29 | 429.63 | 508.52  | 19.77  | 13.00  |
+
+**Semi-supervised Graph Regression Dataset:**
+
+QM9 dataset for graph property prediction (regression)
+
+| Dataset | # Graphs | # Regression Tasks |
+| ------- | -------- | ------------------ |
+| QM9     | 130,831  | 12                 |
+
 
 
 ## Arguments
