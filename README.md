@@ -9,7 +9,7 @@ Author's code: https://github.com/fanyun-sun/InfoGraph
 
 - Python 3.7
 - PyTorch 1.7.1
-- dgl 0.6.1
+- dgl 0.6.0
 
 ## Datasets
 
@@ -31,6 +31,23 @@ QM9 dataset for graph property prediction (regression)
 | ------- | -------- | ------------------ |
 | QM9     | 130,831  | 12                 |
 
+The 12 tasks are:
+
+| Keys  | Property                   | Description                                                  |
+| ----- | -------------------------- | :----------------------------------------------------------- |
+| mu    | $\mu$                      | Dipole moment                                                |
+| alpha | $\alpha$                   | Isotropic polarizability                                     |
+| homo  | $\epsilon_{\textrm{HUMO}}$ | Highest occupied molecular orbital energ                     |
+| lumo  | $\epsilon_{\textrm{LUMO}}$ | Lowest unoccupied molecular orbital energy                   |
+| gap   | $\Delta \epsilon$          | Gap between $\epsilon_{\textrm{HOMO}}$ and $\epsilon_{\textrm{LUMO}}$ |
+| r2    | $\langle R^2 \rangle$      | Electronic spatial extent                                    |
+| zpve  | $\textrm{ZPVE}$            | Zero point vibrational energy                                |
+| U0    | $U_0$                      | Internal energy at 0K                                        |
+| U     | $U$                        | Internal energy at 298.15K                                   |
+| H     | $H$                        | Enthalpy at 298.15K                                          |
+| G     | $G$                        | Free energy at 298.15K                                       |
+| Cv    | $c_{\textrm{v}}$           | Heat capavity at 298.15K                                     |
+
 
 
 ## Arguments
@@ -40,13 +57,13 @@ QM9 dataset for graph property prediction (regression)
 ###### Dataset options
 
 ```
---dataname          str     The graph dataset name.             Default is 'MUTAG'.
+ --dataname         str     The graph dataset name.               Default is 'MUTAG'.
 ```
 
 ###### GPU options
 
 ```
---gpu              int     GPU index.                          Default is -1, using CPU.
+--gpu              int     GPU index.                             Default is -1, using CPU.
 ```
 
 ###### Training options
@@ -64,6 +81,39 @@ QM9 dataset for graph property prediction (regression)
 --hid_dim          int     Dimension of hidden layer.             Default is 32.
 ```
 
+##### 	Semi-supervised Graph Regression:
+
+###### Dataset options
+
+```
+ --target          str     The regression Task                    Default is 'mu'.
+ --train_num       int     Number of supevised examples.          Default is 5000.
+```
+
+###### GPU options
+
+```
+--gpu              int     GPU index.                             Default is -1, using CPU.
+```
+
+###### Training options
+
+```
+--epochs           int     Number of training epochs.             Default is 200
+--batch_size       int     Size of a training batch               Default is 20.
+--val_batch_size   int     Size of a validation batch.            Default is 100
+--lr               float   Adam optimizer learning rate.          Default is 0.001.
+```
+
+###### Model options
+
+```
+--hid_dim          int     Dimension of hidden layer.             Default is 64.
+--reg              int     Regularization weight                  Default is 0.001.
+```
+
+## 
+
 ## How to run examples
 
 Training and testing unsupervised model on MUTAG.(We recommend using cpu)
@@ -73,6 +123,15 @@ python unsupervised.py --dataname MUTAG --n_layers 4 --hid_dim 32
 ```
 Replace 'MUTAG' with dataname in [MUTAG', 'PTC', 'IMDBBINARY', 'IMDBMULTI', 'REDDITBINARY', 'REDDITMULTI5K'] if you'd like to try other datasets.
 
+Training and testing semi-supervised model on QM9 for graph property 'mu' with gpu.
+
+```bash
+# QM9:
+python semisupervised.py --gpu 0 --target mu
+```
+
+Replace 'mu' with other target names in 
+
 ## 	Performance
 
 The hyperparameter setting in our implementation is identical to that reported in the paper.
@@ -81,8 +140,20 @@ The hyperparameter setting in our implementation is identical to that reported i
 
 |      Dataset      | MUTAG |  PTC  | REDDIT-B | REDDIT-M | IMDB-B | IMDB-M |
 | :---------------: | :---: | :---: | :------: | -------- | ------ | ------ |
-| Accuract Reported | 89.01 | 61.65 |  82.50   | 53.46    | 73.03  | 49.69  |
+| Accuracy Reported | 89.01 | 61.65 |  82.50   | 53.46    | 73.03  | 49.69  |
 |  This repository  | 89.88 | 63.54 |  88.50   | 56.27    | 72.70  | 50.13  |
 
-* REDDIT-M dataset would take a quite long time to load and evaluate, be patient. 
+* REDDIT-M dataset would take a quite long time to load and evaluate. 
+
+##### Semisupervised Graph Regression on QM9:
+
+Here we only provide the results of 'mu', 'alpha', 'HOMO'.
+
+We find that there's a big gap between the reported RMSE and that of our implementation. We also tried author's code and found that the gap still existed. This issue has been reported in https://github.com/fanyun-sun/InfoGraph/issues/8
+
+|     Target      | $\mu$  | $\alpha$ | $\epsilon_{\textrm{HOMO}}$ |
+| :-------------: | :----: | :------: | :------------------------: |
+|  RMSE Reported  | 0.3169 |  0.5444  |           0.0060           |
+|  Author's code  | 0.2411 |  0.5192  |           0.1560           |
+| This repository | 0.2355 |  0.5483  |           0.1581           |
 
