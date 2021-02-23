@@ -1,10 +1,9 @@
 import numpy as np
 import torch as th
-# from torch.utils.data import DataLoader
 import torch.nn.functional as F
 import dgl
 from dgl.dataloading import GraphDataLoader
-from process_data import QM9Dataset
+from qm9_v2 import QM9Dataset_v2
 from model import InfoGraphS
 import argparse
 
@@ -13,7 +12,7 @@ def argument():
     parser = argparse.ArgumentParser(description='InfoGraph')
 
     # data source params
-    parser.add_argument('--target', type=int, default=0, help='Choose regression task}')
+    parser.add_argument('--target', type=str, default='mu', help='Choose regression task}')
     parser.add_argument('--train_num', type=int, default=5000, help='Number of training set')
 
     # training params
@@ -45,7 +44,7 @@ def collate(samples):
 
     graphs, targets = map(list, zip(*samples))
     batched_graph = dgl.batch(graphs)
-    batched_targets = th.stack(targets)
+    batched_targets = th.Tensor(targets)
     n_nodes = batched_graph.num_nodes()
 
     batch = th.zeros(n_nodes).long()
@@ -66,9 +65,11 @@ if __name__ == '__main__':
 
     # Step 1: Prepare graph data   ===================================== #
     args = argument()
+    label_keys = [args.target]
     print(args)
 
-    dataset = QM9Dataset()
+    dataset = QM9Dataset_v2(label_keys)
+    dataset.to_dense()
 
     graphs = dataset.graphs
 
@@ -118,108 +119,102 @@ if __name__ == '__main__':
                               drop_last=False,
                               shuffle=True)
 
-    for i in range(8):
-        target = i+4
-        print('======== target = {} ========'.format(target))
+    print('======== target = {} ========'.format(args.target))
 
-        mean = dataset[:][1][:, target].mean().item()
-        std = dataset[:][1][:, target].std().item()
+    mean = dataset.labels.mean().item()
+    std = dataset.labels.mean().item()
 
-        print('mean = {:4f}'.format(mean))
-        print('std = {:4f}'.format(std))
 
-        in_dim = dataset[0][0].ndata['attr'].shape[1]
+    print('mean = {:4f}'.format(mean))
+    print('std = {:4f}'.format(std))
 
-        patience = 0
+    in_dim = dataset[0][0].ndata['attr'].shape[1]
 
-        # Step 2: Create model =================================================================== #
-        model = InfoGraphS(in_dim, args.hid_dim)
-        model = model.to(args.device)
+    # Step 2: Create model =================================================================== #
+    model = InfoGraphS(in_dim, args.hid_dim)
+    model = model.to(args.device)
 
-        # Step 3: Create training components ===================================================== #
-        optimizer = th.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
-        scheduler = th.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, mode='min', factor=0.7, patience=5, min_lr=0.000001
-        )
+    # Step 3: Create training components ===================================================== #
+    optimizer = th.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
+    scheduler = th.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode='min', factor=0.7, patience=5, min_lr=0.000001
+    )
 
-        # Step 4: training epoches =============================================================== #
+    # Step 4: training epoches =============================================================== #
+    sup_loss_all = 0
+    unsup_loss_all = 0
+    consis_loss_all = 0
+
+    best_val_error = 99999
+    best_test_error = 99999
+    for epoch in range(args.epochs):
+        ''' Training '''
+        model.train()
+        lr = scheduler.optimizer.param_groups[0]['lr']
+
+        iteration = 0
         sup_loss_all = 0
         unsup_loss_all = 0
         consis_loss_all = 0
 
-        best_val_error = 99999
-        best_test_error = 99999
-        for epoch in range(args.epochs):
-            ''' Training '''
-            model.train()
-            lr = scheduler.optimizer.param_groups[0]['lr']
+        for sup_data, unsup_data in zip(train_loader, unsup_loader):
+            sup_graph, sup_target = sup_data
+            unsup_graph, _ = unsup_data
 
-            iteration = 0
-            sup_loss_all = 0
-            unsup_loss_all = 0
-            consis_loss_all = 0
+            sup_graph = sup_graph.to(args.device)
+            unsup_graph = unsup_graph.to(args.device)
 
-            for sup_data, unsup_data in zip(train_loader, unsup_loader):
-                sup_graph, sup_target = sup_data
-                unsup_graph, unsup_target2 = unsup_data
+            sup_target = (sup_target - mean) / std
+            sup_target = sup_target.to(args.device)
 
-                sup_graph = sup_graph.to(args.device)
-                unsup_graph = unsup_graph.to(args.device)
+            optimizer.zero_grad()
 
-                sup_target = (sup_target[:, target] - mean) / std
-                sup_target = sup_target.to(args.device)
+            sup_loss = F.mse_loss(model(sup_graph), sup_target)
+            unsup_loss, consis_loss = model.unsup_forward(unsup_graph)
 
-                optimizer.zero_grad()
+            loss = sup_loss + unsup_loss + args.reg * consis_loss
 
-                sup_loss = F.mse_loss(model(sup_graph), sup_target)
-                unsup_loss, consis_loss = model.unsup_forward(unsup_graph)
+            loss.backward()
 
-                loss = sup_loss + unsup_loss + args.reg * consis_loss
+            sup_loss_all += sup_loss.item()
+            unsup_loss_all += unsup_loss.item()
+            consis_loss_all += consis_loss.item()
 
-                loss.backward()
+            optimizer.step()
 
-                sup_loss_all += sup_loss.item()
-                unsup_loss_all += unsup_loss.item()
-                consis_loss_all += consis_loss.item()
+        print('Epoch: {}, Sup_Loss: {:4f}, Unsup_loss: {:.4f}, Consis_loss: {:.4f}' \
+            .format(epoch, sup_loss_all, unsup_loss_all, consis_loss_all))
 
-                optimizer.step()
+        model.eval()
 
-            print('Epoch: {}, Sup_Loss: {:4f}, Unsup_loss: {:.4f}, Consis_loss: {:.4f}' \
-                .format(epoch, sup_loss_all, unsup_loss_all, consis_loss_all))
+        val_error = 0
+        test_error = 0
+        
 
-            model.eval()
+        for val_graphs, val_targets in val_loader:
 
-            val_error = 0
-            test_error = 0
-            
+            val_graph = val_graphs.to(args.device)
+            val_target = (val_targets - mean) / std
+            val_target = val_target.to(args.device)
 
-            for val_graphs, val_targets in val_loader:
+            val_error += (model(val_graph) * std - val_target * std).abs().sum().item()
 
-                val_graph = val_graphs.to(args.device)
-                val_target = (val_targets[:, target] - mean) / std
-                val_target = val_target.to(args.device)
+        val_error = val_error / val_num
+        scheduler.step(val_error)
 
-                val_error += (model(val_graph) * std - val_target * std).abs().sum().item()
+        if val_error < best_val_error:
+            best_val_error = val_error
 
-            val_error = val_error / val_num
-            scheduler.step(val_error)
+            for test_graphs, test_targets in test_loader:
 
-            if val_error < best_val_error:
-                best_val_error = val_error
+                test_graph = test_graphs.to(args.device)
+                test_target = (test_targets - mean) / std
+                test_target = test_target.to(args.device)
 
-                for test_graphs, test_targets in test_loader:
+                test_error += (model(test_graph) * std - test_target * std).abs().sum().item()
 
-                    test_graph = test_graphs.to(args.device)
-                    test_target = (test_targets[:, target] - mean) / std
-                    test_target = test_target.to(args.device)
+            test_error = test_error / test_num
+            best_test_error = test_error
 
-                    test_error += (model(test_graph) * std - test_target * std).abs().sum().item()
-
-                test_error = test_error / test_num
-                best_test_error = test_error
-
-            print('Epoch: {}, LR: {}, best_val_error: {:.4f}, val_error: {:.4f}, best_test_error: {:.4f}' \
-                .format(epoch, lr, best_val_error, val_error, best_test_error))
-
-        with open('supervised.log', 'a+') as f:
-            f.write('target_{}_{}_{}\n'.format(target, best_val_error, best_test_error))
+        print('Epoch: {}, LR: {}, best_val_error: {:.4f}, val_error: {:.4f}, best_test_error: {:.4f}' \
+            .format(epoch, lr, best_val_error, val_error, best_test_error))
