@@ -48,8 +48,6 @@ The 12 tasks are:
 | G     | Free energy at 298.15K                     |
 | Cv    | Heat capavity at 298.15K                   |
 
-
-
 ## Arguments
 
 ##### 	Unsupervised Graph Classification:
@@ -130,7 +128,7 @@ Training and testing semi-supervised model on QM9 for graph property 'mu' with g
 python semisupervised.py --gpu 0 --target mu
 ```
 
-Replace 'mu' with other target names in 
+Replace 'mu' with other target names above
 
 ## 	Performance
 
