@@ -33,20 +33,20 @@ QM9 dataset for graph property prediction (regression)
 
 The 12 tasks are:
 
-| Keys  | Property                   | Description                                                  |
-| ----- | -------------------------- | :----------------------------------------------------------- |
-| mu    | $\mu$                      | Dipole moment                                                |
-| alpha | $\alpha$                   | Isotropic polarizability                                     |
-| homo  | $\epsilon_{\textrm{HUMO}}$ | Highest occupied molecular orbital energ                     |
-| lumo  | $\epsilon_{\textrm{LUMO}}$ | Lowest unoccupied molecular orbital energy                   |
-| gap   | $\Delta \epsilon$          | Gap between $\epsilon_{\textrm{HOMO}}$ and $\epsilon_{\textrm{LUMO}}$ |
-| r2    | $\langle R^2 \rangle$      | Electronic spatial extent                                    |
-| zpve  | $\textrm{ZPVE}$            | Zero point vibrational energy                                |
-| U0    | $U_0$                      | Internal energy at 0K                                        |
-| U     | $U$                        | Internal energy at 298.15K                                   |
-| H     | $H$                        | Enthalpy at 298.15K                                          |
-| G     | $G$                        | Free energy at 298.15K                                       |
-| Cv    | $c_{\textrm{v}}$           | Heat capavity at 298.15K                                     |
+| Keys  | Description                                                  |
+| ----- | :----------------------------------------------------------- |
+| mu    | Dipole moment                                                |
+| alpha | Isotropic polarizability                                     |
+| homo  | Highest occupied molecular orbital energ                     |
+| lumo  | Lowest unoccupied molecular orbital energy                   |
+| gap   | Gap between $\epsilon_{\textrm{HOMO}}$ and $\epsilon_{\textrm{LUMO}}$ |
+| r2    | Electronic spatial extent                                    |
+| zpve  | Zero point vibrational energy                                |
+| U0    | Internal energy at 0K                                        |
+| U     | Internal energy at 298.15K                                   |
+| H     | Enthalpy at 298.15K                                          |
+| G     | Free energy at 298.15K                                       |
+| Cv    | Heat capavity at 298.15K                                     |
 
 
 
@@ -147,13 +147,13 @@ The hyperparameter setting in our implementation is identical to that reported i
 
 ##### Semisupervised Graph Regression on QM9:
 
-Here we only provide the results of 'mu', 'alpha', 'HOMO'.
+Here we only provide the results of 'mu', 'alpha', 'homo'.
 
 We find that there's a big gap between the reported RMSE and that of our implementation. We also tried author's code and found that the gap still existed. This issue has been reported in https://github.com/fanyun-sun/InfoGraph/issues/8
 
-|     Target      | $\mu$  | $\alpha$ | $\epsilon_{\textrm{HOMO}}$ |
-| :-------------: | :----: | :------: | :------------------------: |
-|  RMSE Reported  | 0.3169 |  0.5444  |           0.0060           |
-|  Author's code  | 0.2411 |  0.5192  |           0.1560           |
-| This repository | 0.2355 |  0.5483  |           0.1581           |
+|     Target      |   mu   | alpha  |  homo  |
+| :-------------: | :----: | :----: | :----: |
+|  RMSE Reported  | 0.3169 | 0.5444 | 0.0060 |
+|  Author's code  | 0.2411 | 0.5192 | 0.1560 |
+| This repository | 0.2355 | 0.5483 | 0.1581 |
 
