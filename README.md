@@ -33,20 +33,20 @@ QM9 dataset for graph property prediction (regression)
 
 The 12 tasks are:
 
-| Keys  | Description                                                  |
-| ----- | :----------------------------------------------------------- |
-| mu    | Dipole moment                                                |
-| alpha | Isotropic polarizability                                     |
-| homo  | Highest occupied molecular orbital energ                     |
-| lumo  | Lowest unoccupied molecular orbital energy                   |
-| gap   | Gap between $\epsilon_{\textrm{HOMO}}$ and $\epsilon_{\textrm{LUMO}}$ |
-| r2    | Electronic spatial extent                                    |
-| zpve  | Zero point vibrational energy                                |
-| U0    | Internal energy at 0K                                        |
-| U     | Internal energy at 298.15K                                   |
-| H     | Enthalpy at 298.15K                                          |
-| G     | Free energy at 298.15K                                       |
-| Cv    | Heat capavity at 298.15K                                     |
+| Keys  | Description                                |
+| ----- | :----------------------------------------- |
+| mu    | Dipole moment                              |
+| alpha | Isotropic polarizability                   |
+| homo  | Highest occupied molecular orbital energ   |
+| lumo  | Lowest unoccupied molecular orbital energy |
+| gap   | Gap between 'homo' and 'lumo'              |
+| r2    | Electronic spatial extent                  |
+| zpve  | Zero point vibrational energy              |
+| U0    | Internal energy at 0K                      |
+| U     | Internal energy at 298.15K                 |
+| H     | Enthalpy at 298.15K                        |
+| G     | Free energy at 298.15K                     |
+| Cv    | Heat capavity at 298.15K                   |
 
 
 
