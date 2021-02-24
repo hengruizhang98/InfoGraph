@@ -5,7 +5,7 @@ Paper link: https://arxiv.org/abs/1908.01000
 
 Author's code: https://github.com/fanyun-sun/InfoGraph
 
-## Dependecies
+## Dependencies
 
 - Python 3.7
 - PyTorch 1.7.1
